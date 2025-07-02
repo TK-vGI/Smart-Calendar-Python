@@ -1,0 +1,85 @@
+import datetime
+from datetime import datetime
+
+
+class SmartCalendar:
+    def __init__(self):
+        """Initialize the DateTimeManager."""
+        self.tasks = []  # Placeholder for potential task management
+
+    def get_current_datetime(self) -> str:
+        """Return the current date and time in YYYY-MM-DD HH:MM format."""
+        now = datetime.now()
+        return now.strftime("%Y-%m-%d %H:%M")
+
+    def calculate_time_remaining(self, input_dt: str) -> str:
+        """Calculate time remaining from current time to input datetime."""
+        try:
+            # Parse the input datetime string
+            target_dt = datetime.strptime(input_dt, "%Y-%m-%d %H:%M")
+            current_dt = datetime.now()
+
+            # Calculate the time difference
+            time_diff = target_dt - current_dt
+
+            # If the target time is in the past, return a message
+            if time_diff.total_seconds() < 0:
+                return "Time is in the past"
+
+            # Calculate days, hours, minutes
+            days = time_diff.days
+            hours, remainder = divmod(time_diff.seconds, 3600)
+            minutes = 1 + (remainder // 60)
+
+            # Format the remaining time with (s)
+            parts = []
+            if days > 0:
+                parts.append(f"{days} day(s)")
+            if hours > 0:
+                parts.append(f"{hours} hour(s)")
+            if minutes > 0:
+                parts.append(f"{minutes} minute(s)")
+
+            return ", ".join(parts) if parts else "0 minute(s)"
+        except ValueError:
+            return "Invalid datetime format"
+
+    def add_task(self, input_dt: str, input_txt: str) -> None:
+        """Process the add command with datetime and text input."""
+        remaining_time = self.calculate_time_remaining(input_dt)
+        if remaining_time not in ["Invalid datetime format", "Time is in the past"]:
+            print(f'Note: "{input_txt}" Remains: {remaining_time}')
+        else:
+            print(remaining_time)
+
+    def view_tasks(self):
+        print("Not implemented yet")
+
+    def delete_task(self):
+        print("Not implemented yet")
+
+    def run(self):
+        print("Current date and time:")
+        print(self.get_current_datetime())
+        while True:
+            command = input("Enter the command (add, view, delete, exit): ").strip().lower()
+            if command == "add":
+                input_dt:str = input("Enter datetime in \"YYYY-MM-DD HH:MM\" format: ")
+                input_txt:str = input("Enter text: ")
+                self.add_task(input_dt, input_txt)
+            elif command == "view":
+                self.view_tasks()
+                break
+            elif command == "delete":
+                self.delete_task()
+                break
+            elif command == "exit":
+                print("bye")
+                break
+            else:
+                print("Incorrect command") # Incorrect menu command
+
+
+if __name__ == "__main__":
+    calendar = SmartCalendar()
+    calendar.run()
