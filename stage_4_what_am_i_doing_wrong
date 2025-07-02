@@ -1,0 +1,238 @@
+import re
+from datetime import datetime
+
+
+class SmartCalendar:
+    def __init__(self):
+        self.tasks = []
+
+    def get_current_datetime(self):
+        return datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    def notes_time_remaining(self, input_dt):
+        try:
+            current_dt = datetime.now()
+            target_dt = datetime.strptime(input_dt, "%Y-%m-%d %H:%M")
+            time_diff = target_dt - current_dt
+            if time_diff.total_seconds() < 0:
+                return "Time is in the past", 0
+            days = time_diff.days
+            hours = time_diff.seconds // 3600
+            remainder = time_diff.seconds % 3600
+            minutes = 1 + (remainder // 60)
+            if minutes == 60:
+                hours = hours + 1
+                minutes = 0
+            if hours == 24:
+                days = days + 1
+                hours = 0
+            parts = [f"{days} day(s)", f"{hours} hour(s)", f"{minutes} minute(s)"]
+            return ", ".join(parts), 0
+        except ValueError:
+            return "Invalid datetime format", 0
+
+    def birthdays_time_remaining(self, input_dt):
+        try:
+            current_dt_ = datetime.strftime(datetime.now(), "%Y-%m-%d")
+            current_dt = datetime.strptime(current_dt_, "%Y-%m-%d")
+            target_date = datetime.strptime(input_dt, "%Y-%m-%d")
+            current_year = current_dt.year
+            next_birthday = datetime(current_year, target_date.month, target_date.day)
+            if next_birthday <= current_dt:
+                next_birthday = datetime(current_year + 1, target_date.month, target_date.day)
+            time_diff = next_birthday - current_dt
+            days = time_diff.days
+            years = current_year - target_date.year
+            if next_birthday.year == current_year + 1:
+                years += 1
+            if days < 0:
+                return "Time is in the past", 0
+            return f"{days} day(s)", years
+        except ValueError:
+            return "Invalid datetime format", 0
+
+    def add_note(self):
+        note_datetime_pattern = re.compile(r"""
+            ^                         # Start of string
+            (?P<date>                 # Named group 'date'
+                \d{4}                 # Year: four digits
+                -                    # Separator dash
+                \d{1,2}                 # Month: two digits
+                -                    # Separator dash
+                \d{1,2}                 # Day: two digits
+            )
+            \s                        # Whitespace separator between date and time
+            (?P<hour>\d{2})           # Named group 'hour': two digits
+            :                         # Separator colon
+            (?P<minute>\d{2})         # Named group 'minute': two digits
+            $                         # End of string
+        """, re.VERBOSE)
+
+        while True:
+            try:
+                note_num = int(input("How many notes would you like to add: ").strip())
+                if note_num <= 0 :
+                    print("Incorrect number")  # Incorrect number of notifications
+                else:
+                    break
+            except ValueError:
+                print("Incorrect number") # Incorrect number of notifications
+
+        for i in range(1, note_num + 1):
+            while True:
+                input_dt = input(f"{i}. Enter datetime in \"YYYY-MM-DD HH:MM\" format:").strip()
+                # Checks for incorrect format, can't be parsed in YYYY-MM-DD HH:MM
+                if self.matches_datetime_pattern(input_dt, note_datetime_pattern):
+                    # Checks for wrong date/time values
+                    if self.is_logically_valid_note_datetime(input_dt):
+                        input_txt = input("Enter text:").strip()
+                        remaining_time, dump = self.notes_time_remaining(input_dt)
+                        if remaining_time not in ["Invalid datetime format", "Time is in the past"]:
+                            self.tasks.append({
+                                "type": "note",
+                                "datetime": input_dt,
+                                "text": input_txt,
+                                "remaining": remaining_time,
+                                "years": 0
+                            })
+                        else:
+                            print(remaining_time)
+                        break
+                    else:
+                        print("Incorrect date or time values")
+                else:
+                    print("Incorrect format")
+
+    def add_birthday(self):
+        birthday_date_pattern = re.compile(r"""
+            ^                      # Start of string
+            (?P<year>\d{4})        # Four-digit year named 'year'
+            -                      # Dash separator
+            (?P<month>\d{2})       # Two-digit month named 'month'
+            -                      # Dash separator
+            (?P<day>\d{2})         # Two-digit day named 'day'
+            $                      # End of string
+        """, re.VERBOSE)
+
+        while True:
+            try:
+                birth_num = int(input("How many dates of birth would you like to add: ").strip())
+                if birth_num <= 0:
+                    print("Incorrect number") # Incorrect number of notifications
+                else:
+                    break
+            except ValueError:
+                print("Incorrect number") # Incorrect number of notifications
+
+        for i in range(1, birth_num + 1):
+            while True:
+                input_dt = input(f"{i}. Enter date of birth in \"YYYY-MM-DD\" format: ").strip()
+                # Checks for incorrect format, can't be parsed in YYYY-MM-DD
+                if self.matches_datetime_pattern(input_dt, birthday_date_pattern):
+                    # Checks for wrong date values
+                    if self.is_logically_valid_birthday(input_dt):
+                        input_txt = input("Enter name:").strip()
+                        remaining_time, years = self.birthdays_time_remaining(input_dt)
+                        if remaining_time not in ["Invalid datetime format", "Time is in the past"]:
+                            self.tasks.append({
+                                "type": "birthday",
+                                "datetime": input_dt,
+                                "text": input_txt,
+                                "remaining": remaining_time,
+                                "years": years
+                            })
+                        else:
+                            print(remaining_time)
+                        break
+                    else:
+                        print("Incorrect date or time values")
+                else:
+                    print("Incorrect format")
+
+    def output_tasks(self):
+        if not self.tasks:
+            print("No tasks to display")
+        for task in self.tasks:
+            if task["type"] == "note":
+                print(f'Note: \"{task["text"]}\" Remains: {task["remaining"]}')
+            else:
+                print(f'Birthday: "{task["text"]} (turns {task["years"]})" - {task["remaining"]}')
+
+    @staticmethod
+    def matches_datetime_pattern(input_str: str, datetime_pattern: re.Pattern[str]) -> bool:
+        return bool(datetime_pattern.match(input_str))
+
+    @staticmethod
+    def is_logically_valid_note_datetime(input_str: str) -> bool:
+        try:
+            # Split into date and time components
+            date_part, time_part = input_str.split(" ")
+            year, month, day = map(int, date_part.split("-"))
+            hour, minute = map(int, time_part.split(":"))
+
+            # Manual range checks
+            if not (1 <= month <= 12):
+                return False
+            if not (0 <= hour < 24):
+                return False
+            if not (0 <= minute < 60):
+                return False
+
+            # Full validation using datetime (catches invalid day/month combos)
+            datetime(year, month, day, hour, minute)
+            return True
+
+        except (ValueError, IndexError):
+            return False
+
+    @staticmethod
+    def is_logically_valid_birthday(input_str: str) -> bool:
+        try:
+            year, month, day = map(int, input_str.split("-"))
+
+            # Month range check
+            if month < 1 or month > 12:
+                return False
+
+            # Catch invalid days using actual calendar rules
+            datetime(year, month, day)  # Raises ValueError if day/month invalid
+
+            return True
+        except ValueError:
+            return False
+
+    def view_tasks(self):
+        print("Not implemented yet")
+
+    def delete_task(self):
+        print("Not implemented yet")
+
+    def run(self):
+        print("Current date and time:")
+        print(self.get_current_datetime())
+        while True:
+            command = input("Enter the command (add, view, delete, exit): ").strip().lower()
+            if command == "add":
+                note_type = input("Specify type (note, birthday):").strip().lower()
+                if note_type == "note":
+                    self.add_note()
+                    self.output_tasks()
+                elif note_type == "birthday":
+                    self.add_birthday()
+                    self.output_tasks()
+                else:
+                    print("Incorrect type") # Incorrect type of notification
+            elif command == "view":
+                self.view_tasks()
+                break
+            elif command == "delete":
+                self.delete_task()
+                break
+            elif command == "exit":
+                print("bye")
+                break
+            else:
+                print("Incorrect command") # Incorrect menu command
+
+if __name__ == "__main__":
+    SmartCalendar().run()
