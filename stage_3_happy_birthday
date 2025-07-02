@@ -1,0 +1,74 @@
+from datetime import datetime
+from typing import List, Tuple
+
+def format_datetime(date):
+    return date.strftime('%Y-%m-%d %H:%M')
+
+
+def split_datetime(date):
+    now = datetime.now()
+    delta = date - now
+
+    days = delta.days
+    hours = delta.seconds // 3600
+    remainder = delta.seconds % 3600
+    minutes = remainder // 60 + 1
+    if minutes == 60:
+        hours = hours + 1
+        minutes = 0
+    if hours == 24:
+        days = days + 1
+        hours = 0
+
+
+    return days, hours, minutes
+
+def add_note():
+    note_list: List[List[str]] = []
+    note_count = int(input("How many notes would you like to add:"))
+    for i in range(note_count):
+        date_input = input(f"{i+1}. Enter datetime in \"YYYY-MM-DD HH:MM\" format: ")
+        text = input("Enter text: ")
+        days, hours, minutes = split_datetime(datetime.strptime(date_input, '%Y-%m-%d %H:%M'))
+        note_list.append([text, days, hours, minutes])
+
+    for text, days, hours, minutes in note_list:
+        print(f"Note: \"{text}\". Remains: {days} day(s)", f"{hours} hour(s), {minutes} minute(s)")
+
+def split_birth_date(birthdate: datetime) -> Tuple[int, int]:
+    now = datetime.now()
+    turns = now.year - birthdate.year
+    last_birthday = birthdate.replace(year=now.year)
+    if last_birthday < now:
+        turns += 1
+    next_birthday = birthdate.replace(year=now.year if last_birthday >= now else now.year + 1)
+    days_remaining = (next_birthday - now).days
+
+    return turns, days_remaining + 1
+
+def add_birth():
+    note_list: List[List[str]] = []
+    note_count = int(input('How many dates of birth'))
+    for i in range(note_count):
+        date_input = input(f"{i+1}. Enter datetime in \"YYYY-MM-DD\" format: ")
+        name = input("Enter name: ")
+        turns, days = split_birth_date(datetime.strptime( date_input , '%Y-%m-%d'))
+        note_list.append([name, turns, days])
+
+    for name,turns, days in note_list:
+        print(f"Birthday: \"{name} (turns {abs(turns)})\". Remains: {days} day(s)")
+
+print('Current date and time:')
+print(format_datetime(datetime.now()))
+command = input("Enter the command (add, view, delete, exit):")
+
+if command == 'add':
+    note_type = input("Specify type (note, birthday):")
+    if note_type == "note":
+        add_note()
+    else:
+        add_birth()
+elif command == 'exit':
+    print('Goodbye!')
+else:
+    print('Not implemented yet')
